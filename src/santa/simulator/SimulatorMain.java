@@ -10,6 +10,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.*;
 
+// for validation of config file against XSD.
+import javax.xml.XMLConstants;
+import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.*;
+import java.io.InputStream;
+import org.xml.sax.SAXException;
+
 /**
  * @author Andrew Rambaut
  * @author Alexei Drummond
@@ -44,6 +52,29 @@ public class SimulatorMain {
 		Random.setSeed(seed);
 		System.out.println("Seed: " + seed);
 			
+		String systemID = "santa.xsd";
+		Class currentClass = new Object() { }.getClass().getEnclosingClass();
+		ClassLoader cl = currentClass.getClassLoader();
+		InputStream in = cl.getResourceAsStream(systemID);
+		Source schemaFile = new StreamSource(in);
+
+
+		// URL schemaFile = new URL("http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd");
+		Source xmlFile = new StreamSource(new File(args[args.length - 1]));
+		try {
+			SchemaFactory schemaFactory = SchemaFactory
+				.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+			Schema schema = schemaFactory.newSchema(schemaFile);
+			Validator validator = schema.newValidator();
+			validator.validate(xmlFile);
+			System.out.println(xmlFile.getSystemId() + " is valid");
+		} catch (SAXException e) {
+			System.out.println(xmlFile.getSystemId() + " is NOT valid");
+			System.out.println("Reason: " + e.getLocalizedMessage());
+		} catch (IOException ioe) {
+			System.err.println("Error reading XML input file: " + ioe.getMessage());
+			System.exit(1);
+		}
 
 		File file = new File(args[args.length - 1]);
 		try {
